@@ -113,7 +113,7 @@ void naive_rotate(int dim, pixel *src, pixel *dst, int *rusage_time, unsigned lo
 char my_rotate_descr[] = "my_rotate: Naive baseline implementation";
 void my_rotate(int dim, pixel *src, pixel *dst, int *rusage_time, unsigned long long *rdtsc_time)
 {
-	int i, j;
+	int i, j, k, l;
 		/* the variables below are used for performance measurement and not for computing the results of the algorithm */
 	long int rusage_start_time, rusage_end_time = 0;
         unsigned long long rdtsc_start_time, rdtsc_end_time = 0;
@@ -123,9 +123,11 @@ void my_rotate(int dim, pixel *src, pixel *dst, int *rusage_time, unsigned long 
 
 /* ANY CHANGES ARE MADE HERE */
 /* below are the main computations for your implementation of the rotate. Any changes in implementation will go here or the other functions it may call */
-	for (j = 0; j < dim; j++)
-		for (i = 0; i < dim; i++)
-			dst[RIDX(dim-1-j, i, dim)] = src[RIDX(i, j, dim)];
+	for (j = 0; j < dim; j+=16)
+		for (i = 0; i < dim; i+=16)
+      for (k = j; k < j+16; k++)
+        for (l = i; l < i+16; l++)
+			     dst[RIDX(dim-1-l, k, dim)] = src[RIDX(k, l, dim)];
 
 
 /* end of computation for rotate function. any changes you make should be made above this line. */
@@ -272,9 +274,34 @@ void my_smooth(int dim, pixel *src, pixel *dst, int *rusage_time, unsigned long 
 /* ANY CHANGES TO BE MADE SHOULD BE BELOW HERE */
 /* below are the main computations for your implementation of the smooth function. Any changes in implementation will go here or the other functiosn it calls */
 
-	for (j = 0; j < dim; j++)
-		for (i = 0; i < dim; i++)
-			dst[RIDX(i, j, dim)] = avg(dim, i, j, src);
+  int l, k, ii, jj;
+  pixel_sum sum;
+  pixel current_pixel;
+  pixel p;
+	for (i = 0; i < dim; i+=16){
+		for (j = 0; j < dim; j+=16){
+      for (l = i; l < i+16; l++){
+        for (k = j; k < j+16; k++){
+          sum.red = sum.green = sum.blue = 0;
+    	    sum.num = 0;
+          for(ii = (l-1 > 0 ? l-1 : 0); ii <= (l+1 < dim-1 ? l+1 : dim-1); ii++){
+            for(jj = (k-1 > 0 ? k-1 : 0); jj <= (k+1 < dim-1 ? k+1 : dim-1); jj++){
+              p = src[RIDX(ii, jj, dim)];
+              sum.red += (int) p.red;
+              sum.green += (int) p.green;
+              sum.blue += (int) p.blue;
+              sum.num++;
+            }
+          }
+
+          current_pixel.red = (unsigned short) (sum.red/sum.num);
+    	    current_pixel.green = (unsigned short) (sum.green/sum.num);
+    	    current_pixel.blue = (unsigned short) (sum.blue/sum.num);
+			    dst[RIDX(l, k, dim)] = current_pixel;
+        }
+      }
+    }
+  }
 
 /* end of computation for smooth function. so don't change anything after this in this function. */
 /* END OF CHANGES */
